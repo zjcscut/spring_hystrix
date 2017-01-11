@@ -6,6 +6,8 @@ import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.util.EntityUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.throwable.extand.http.repository.constant.HttpMethodEnum;
 import org.throwable.extand.http.repository.entity.*;
 import org.throwable.extand.http.repository.exception.HttpClientException;
@@ -21,6 +23,8 @@ import java.util.Map;
  * @function 线程安全的Http客户端工具类
  */
 public final class HttpClient {
+
+    private static final Logger log = LoggerFactory.getLogger(HttpClient.class);
 
     private int socketTimeOut = 15000; //默认socket超时时间,单位:毫秒
     private int connectTimeOut = 15000; //默认connection超时时间,单位:毫秒
@@ -111,12 +115,12 @@ public final class HttpClient {
                 .setConnectTimeout(connectTimeOut)
                 .setConnectionRequestTimeout(connectRequestTimeOut)
                 .build();
-        HttpRequestBase request
+        HttpRequestBase requestBase
                 = HttpClientComponentFactory.buildHttpRequestByMethod(methodEnum, url, headers, parameters, files);
-        request.setConfig(config);
+        requestBase.setConfig(config);
         DefaultHttpRespnose result = new DefaultHttpRespnose();
         try (CloseableHttpClient client = HttpClientComponentFactory.buildDefailtHttpClient();
-             CloseableHttpResponse response = client.execute(request)) {
+             CloseableHttpResponse response = client.execute(requestBase)) {
             result.setStatusCode(response.getStatusLine().getStatusCode());
             result.setHeaders(response.getAllHeaders());
             HttpEntity entity = response.getEntity();
@@ -130,6 +134,9 @@ public final class HttpClient {
             result.setContent(responseResult);
             return result;
         } catch (Exception e) {
+            if (log.isDebugEnabled()) {
+                log.error(String.format("send http request failed,message:[%s]", e));
+            }
             throw new HttpClientException(e);
         }
     }
